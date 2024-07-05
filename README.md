@@ -12,11 +12,3 @@ This program need for fastest way unlock all achievements in your Steam games.
 3. Start Steam 
 4. Start Steam Achievement Abuser.exe
 # Done!
-
-# Video tutorial
-
-[youtube](https://youtu.be/kS-jmlIagQQ)
-
-# Screenshot
-
-![screenshot](https://sa68ru.xyz/s/Steam_Achievement_Abuser.png)
