@@ -1,5 +1,3 @@
-![Main](https://sa68ru.xyz/s/TEST.png)
-
 # Steam Achievement Abuser
 
 - Based on: https://github.com/gibbed/SteamAchievementManager
