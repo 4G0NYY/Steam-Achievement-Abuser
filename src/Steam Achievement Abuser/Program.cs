@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Xml.XPath;
 
 namespace Steam_Achievement_Abuser
@@ -17,8 +18,8 @@ namespace Steam_Achievement_Abuser
 
         static void Main()
         {
-            Console.Title = "Steam Achievement Abuser";
-            Console.WriteLine("Welcome to Steam Achievement Abuser by sa68ru.xyz");
+            Console.Title = "Fixed Steam Achievement Abuser | Luv, 4G0NYY <3";
+            Console.WriteLine("Welcome to the fixed Steam Achievement Abuser by 4G0NYY");
             Console.WriteLine("Based on: https://github.com/gibbed/SteamAchievementManager");
             Console.WriteLine("Init...");
             try
@@ -34,7 +35,7 @@ namespace Steam_Achievement_Abuser
             AddGames();
             Console.WriteLine($"Found {_Games.Count()} games...");
             Console.WriteLine("");
-            Console.WriteLine("Press key for start abuse...");
+            Console.WriteLine("Press any key to start abusing steam...");
             Console.ReadKey();
             StartAbuse();
             Console.ReadKey();
@@ -52,6 +53,7 @@ namespace Steam_Achievement_Abuser
                 using (Process p = Process.Start(ps)) 
                     p.WaitForExit();
                 i++;
+                Thread.Sleep(5000);
             }
             Console.WriteLine("");
             Console.WriteLine("Done!");
