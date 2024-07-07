@@ -13,6 +13,7 @@ namespace Steam_Achievement_Abuser
 {
     class Program
     {
+        private static int pausebetweenabuse = 5000;
         private static Client _SteamClient = null;
         private static List<GameInfo> _Games = new List<GameInfo>();
 
@@ -35,7 +36,17 @@ namespace Steam_Achievement_Abuser
             AddGames();
             Console.WriteLine($"Found {_Games.Count()} games...");
             Console.WriteLine("");
-            Console.WriteLine("Press any key to start abusing steam...");
+            Console.WriteLine("How long should the pause between each game be? (Lower Value = Faster but maybe unstable / Higher Value = Slower but stable (Leave Empty for Default: 5000)");
+            string helpmeIwanttodie = Console.ReadLine();
+            if (int.TryParse(helpmeIwanttodie, out int pausebetweenabuse))
+            {
+                Console.WriteLine($"The pause in between the abuse will be: {pausebetweenabuse}");
+            }
+            else
+            {
+                Console.WriteLine("Your Input is invalid. Please type a number between 1000 and 5000.");
+            }
+            Console.WriteLine("Press any key to start abusing Steam...");
             Console.ReadKey();
             StartAbuse();
             Console.ReadKey();
@@ -53,7 +64,7 @@ namespace Steam_Achievement_Abuser
                 using (Process p = Process.Start(ps)) 
                     p.WaitForExit();
                 i++;
-                Thread.Sleep(5000);
+                Thread.Sleep(pausebetweenabuse);
             }
             Console.WriteLine("");
             Console.WriteLine("Done!");
