@@ -19,7 +19,9 @@ namespace Steam_Achievement_Abuser
 
         static void Main()
         {
+            Console.SetWindowSize(140, 36);
             Console.Title = "Fixed Steam Achievement Abuser | Luv, 4G0NYY <3";
+            Console.WriteLine("   _____ _                                      _     _                                     _              _                         \n  / ____| |                           /\\       | |   (_)                                   | |       /\\   | |                        \n | (___ | |_ ___  __ _ _ __ ___      /  \\   ___| |__  _  _____   _____ _ __ ___   ___ _ __ | |_     /  \\  | |__  _   _ ___  ___ _ __ \n  \\___ \\| __/ _ \\/ _` | '_ ` _ \\    / /\\ \\ / __| '_ \\| |/ _ \\ \\ / / _ \\ '_ ` _ \\ / _ \\ '_ \\| __|   / /\\ \\ | '_ \\| | | / __|/ _ \\ '__|\n  ____) | ||  __/ (_| | | | | | |  / ____ \\ (__| | | | |  __/\\ V /  __/ | | | | |  __/ | | | |_   / ____ \\| |_) | |_| \\__ \\  __/ |   \n |_____/ \\__\\___|\\__,_|_| |_| |_| /_/    \\_\\___|_| |_|_|\\___| \\_/ \\___|_| |_| |_|\\___|_| |_|\\__| /_/    \\_\\_.__/ \\__,_|___/\\___|_|   \n");
             Console.WriteLine("Welcome to the fixed Steam Achievement Abuser by 4G0NYY");
             Console.WriteLine("Based on: https://github.com/gibbed/SteamAchievementManager");
             Console.WriteLine("Init...");
