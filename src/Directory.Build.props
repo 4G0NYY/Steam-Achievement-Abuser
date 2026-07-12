@@ -1,0 +1,17 @@
+<Project>
+
+  <!-- Settings shared by every project under src/. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- steamclient.dll is 32-bit, so everything must run as an x86 process. -->
+    <PlatformTarget>x86</PlatformTarget>
+    <Platforms>x86</Platforms>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- Keep the hand-maintained AssemblyInfo.cs files. -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- Windows-only interop by design; binary reads mirror the original SAM parser. -->
+    <NoWarn>$(NoWarn);CA1416;CA2022</NoWarn>
+  </PropertyGroup>
+
+</Project>

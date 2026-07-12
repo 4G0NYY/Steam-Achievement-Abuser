@@ -22,7 +22,7 @@ namespace Steam_Achievement_Abuser
         private const int WorkerTimeoutMs = 10000;
         private const int CallbackPumpIntervalMs = 100;
 
-        private const string GamesListUrl = "http://gib.me/sam/games.xml";
+        private const string GamesListUrl = "https://gib.me/sam/games.xml";
 
         private static Client _SteamClient;
         private static readonly List<GameInfo> _Games = new List<GameInfo>();
@@ -194,6 +194,8 @@ namespace Steam_Achievement_Abuser
             Console.WriteLine();
 
             int completed = 0;
+            int succeeded = 0;
+            var failed = new List<string>();
             DrawProgress(completed, _Games.Count, "");
 
             foreach (GameInfo game in _Games)
@@ -204,11 +206,13 @@ namespace Steam_Achievement_Abuser
                     UseShellExecute = false,
                 };
 
+                bool ok = false;
                 try
                 {
                     using (Process worker = Process.Start(startInfo))
                     {
                         worker.WaitForExit();
+                        ok = worker.ExitCode == 0;
                     }
                 }
                 catch
@@ -217,6 +221,15 @@ namespace Steam_Achievement_Abuser
                 }
 
                 completed++;
+                if (ok)
+                {
+                    succeeded++;
+                }
+                else
+                {
+                    failed.Add(game.Name);
+                }
+
                 DrawProgress(completed, _Games.Count, game.Name);
 
                 if (completed < _Games.Count)
@@ -227,7 +240,20 @@ namespace Steam_Achievement_Abuser
 
             Console.WriteLine();
             Console.WriteLine();
-            Console.WriteLine("Done! Every achievement that could be unlocked has been unlocked. Enjoy! :)");
+            Console.WriteLine("Done! " + succeeded + "/" + _Games.Count + " games processed successfully.");
+            if (failed.Count > 0)
+            {
+                Console.WriteLine(failed.Count + " game(s) were skipped (Steam returned no stats for them, or they have no achievements):");
+                foreach (string name in failed.Take(15))
+                {
+                    Console.WriteLine("  - " + name);
+                }
+                if (failed.Count > 15)
+                {
+                    Console.WriteLine("  ...and " + (failed.Count - 15) + " more.");
+                }
+            }
+            Console.WriteLine("Enjoy! :)");
         }
 
         private static void DrawProgress(int done, int total, string label)
@@ -270,12 +296,7 @@ namespace Steam_Achievement_Abuser
         private static void AddGames()
         {
             var pairs = new List<KeyValuePair<uint, string>>();
-            byte[] bytes;
-
-            using (var http = new HttpClient())
-            {
-                bytes = http.GetByteArrayAsync(new Uri(GamesListUrl)).GetAwaiter().GetResult();
-            }
+            byte[] bytes = DownloadGamesXml();
 
             using (var stream = new MemoryStream(bytes, false))
             {
@@ -296,6 +317,68 @@ namespace Steam_Achievement_Abuser
                 {
                     AddGame(kv.Key, kv.Value);
                 }
+            }
+        }
+
+        // Download the game list, falling back to the last cached copy if gib.me is unreachable.
+        private static byte[] DownloadGamesXml()
+        {
+            try
+            {
+                byte[] bytes;
+                using (var http = new HttpClient())
+                {
+                    http.Timeout = TimeSpan.FromSeconds(30);
+                    bytes = http.GetByteArrayAsync(new Uri(GamesListUrl)).GetAwaiter().GetResult();
+                }
+                TrySaveGamesCache(bytes);
+                return bytes;
+            }
+            catch (Exception ex)
+            {
+                byte[] cached = TryLoadGamesCache();
+                if (cached != null)
+                {
+                    Console.WriteLine("Couldn't reach the online game list (" + ex.Message + ").");
+                    Console.WriteLine("Falling back to the cached copy from a previous run.");
+                    return cached;
+                }
+                throw;
+            }
+        }
+
+        private static string GamesCachePath()
+        {
+            string dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SteamAchievementAbuser");
+            return Path.Combine(dir, "games.xml");
+        }
+
+        private static void TrySaveGamesCache(byte[] bytes)
+        {
+            try
+            {
+                string path = GamesCachePath();
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllBytes(path, bytes);
+            }
+            catch
+            {
+                // A missing cache is not fatal — it just means no offline fallback next time.
+            }
+        }
+
+        private static byte[] TryLoadGamesCache()
+        {
+            try
+            {
+                string path = GamesCachePath();
+                return File.Exists(path) ? File.ReadAllBytes(path) : null;
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -340,6 +423,7 @@ namespace Steam_Achievement_Abuser
             }
 
             bool done = false;
+            int resultCode = 1; // stays 1 unless Steam actually returns this game's stats
             SAM.API.Callbacks.UserStatsReceived callback =
                 client.CreateAndRegisterCallback<SAM.API.Callbacks.UserStatsReceived>();
             callback.OnRun += param =>
@@ -352,6 +436,7 @@ namespace Steam_Achievement_Abuser
                     {
                         client.SteamUserStats.SetAchievement(achievement.Id, true);
                     }
+                    resultCode = 0;
                 }
                 done = true;
             };
@@ -369,7 +454,7 @@ namespace Steam_Achievement_Abuser
                 waited += CallbackPumpIntervalMs;
             }
 
-            return 0;
+            return resultCode;
         }
 
         private static bool LoadUserGameStatsSchema(Client client, out List<AchievementDefinition> achievements, uint gameId)

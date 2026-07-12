@@ -1,19 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Shared settings (target framework, x86, NoWarn, ...) live in ..\Directory.Build.props -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>Steam_Achievement_Abuser</RootNamespace>
     <AssemblyName>Steam Achievement Abuser</AssemblyName>
-    <!-- Must match SAM.API: 32-bit process for the 32-bit steamclient.dll. -->
-    <PlatformTarget>x86</PlatformTarget>
-    <Platforms>x86</Platforms>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <Nullable>disable</Nullable>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <!-- Windows-only interop by design; binary reads mirror the original SAM parser. -->
-    <NoWarn>$(NoWarn);CA1416;CA2022</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ASCII boot splash, embedded so there is no runtime file dependency. -->
+    <EmbeddedResource Include="Assets\steamabuuus.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SAM.API\SAM.API.csproj" />
+  </ItemGroup>
 
   <!-- When publishing with a runtime (e.g. -r win-x86), bundle everything into a
        single compressed .exe so the release is one file, not 193. -->
@@ -25,14 +26,5 @@
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
-
-  <ItemGroup>
-    <!-- ASCII boot splash, embedded so there is no runtime file dependency. -->
-    <EmbeddedResource Include="Assets\steamabuuus.txt" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\SAM.API\SAM.API.csproj" />
-  </ItemGroup>
 
 </Project>

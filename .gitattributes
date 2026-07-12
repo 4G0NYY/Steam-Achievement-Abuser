@@ -1,0 +1,19 @@
+# Normalize line endings: store LF in the repo, check out native on each OS.
+* text=auto
+
+# Source / text files
+*.cs      text diff=csharp
+*.csproj  text
+*.props   text
+*.sln     text eol=crlf
+*.md      text
+*.yml     text
+*.yaml    text
+*.txt     text
+*.config  text
+*.manifest text
+
+# Binary assets (never touch line endings)
+*.ico     binary
+*.png     binary
+*.bin     binary
