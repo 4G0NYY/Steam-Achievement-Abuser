@@ -19,30 +19,16 @@
  * 3. This notice may not be removed or altered from any source
  *    distribution.
  */
-
-using System;
-using System.Runtime.InteropServices;
-
-namespace SAM.API.Interfaces
+namespace SAM.API
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct ISteamUser012
+    public enum ClientInitializeFailure : byte
     {
-        public IntPtr GetHSteamUser;
-        public IntPtr LoggedOn;
-        public IntPtr GetSteamID;
-        public IntPtr InitiateGameConnection;
-        public IntPtr TerminateGameConnection;
-        public IntPtr TrackAppUsageEvent;
-        public IntPtr GetUserDataFolder;
-        public IntPtr StartVoiceRecording;
-        public IntPtr StopVoiceRecording;
-        public IntPtr GetCompressedVoice;
-        public IntPtr DecompressVoice;
-        public IntPtr GetAuthSessionTicket;
-        public IntPtr BeginAuthSession;
-        public IntPtr EndAuthSession;
-        public IntPtr CancelAuthTicket;
-        public IntPtr UserHasLicenseForApp;
+        Unknown = 0,
+        GetInstallPath,
+        Load,
+        CreateSteamClient,
+        CreateSteamPipe,
+        ConnectToGlobalUser,
+        AppIdMismatch,
     }
 }

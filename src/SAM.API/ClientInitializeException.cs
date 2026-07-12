@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Rick (rick 'at' gibbed 'dot' us)
+﻿/* Copyright (c) 2024 Rick (rick 'at' gibbed 'dot' us)
  *
  * This software is provided 'as-is', without any express or implied
  * warranty. In no event will the authors be held liable for any damages
@@ -19,19 +19,29 @@
  * 3. This notice may not be removed or altered from any source
  *    distribution.
  */
+using System;
 
-namespace SAM.API.Callbacks
+namespace SAM.API
 {
-    public class UserStatsStored : Callback<Types.UserStatsStored>
+    public class ClientInitializeException : Exception
     {
-        public override int Id
+        public readonly ClientInitializeFailure Failure;
+
+        public ClientInitializeException(ClientInitializeFailure failure)
         {
-            get { return 1102; }
+            this.Failure = failure;
         }
 
-        public override bool IsServer
+        public ClientInitializeException(ClientInitializeFailure failure, string message)
+            : base(message)
         {
-            get { return false; }
+            this.Failure = failure;
+        }
+
+        public ClientInitializeException(ClientInitializeFailure failure, string message, Exception innerException)
+            : base(message, innerException)
+        {
+            this.Failure = failure;
         }
     }
 }

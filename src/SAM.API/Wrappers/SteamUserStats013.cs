@@ -1,21 +1,21 @@
-﻿/* Copyright (c) 2017 Rick (rick 'at' gibbed 'dot' us)
- * 
+﻿/* Copyright (c) 2024 Rick (rick 'at' gibbed 'dot' us)
+ *
  * This software is provided 'as-is', without any express or implied
  * warranty. In no event will the authors be held liable for any damages
  * arising from the use of this software.
- * 
+ *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
- * 
+ *
  * 1. The origin of this software must not be misrepresented; you must not
  *    claim that you wrote the original software. If you use this software
  *    in a product, an acknowledgment in the product documentation would
  *    be appreciated but is not required.
- * 
+ *
  * 2. Altered source versions must be plainly marked as such, and must not
  *    be misrepresented as being the original software.
- * 
+ *
  * 3. This notice may not be removed or altered from any source
  *    distribution.
  */
@@ -26,19 +26,8 @@ using SAM.API.Interfaces;
 
 namespace SAM.API.Wrappers
 {
-    public class SteamUserStats007 : NativeWrapper<ISteamUserStats007>
+    public class SteamUserStats013 : NativeWrapper<ISteamUserStats013>
     {
-        #region RequestCurrentStats
-        [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-        [return: MarshalAs(UnmanagedType.I1)]
-        private delegate bool NativeRequestCurrentStats(IntPtr self);
-
-        public bool RequestCurrentStats()
-        {
-            return this.Call<bool, NativeRequestCurrentStats>(this.Functions.RequestCurrentStats, this.ObjectAddress);
-        }
-        #endregion
-
         #region GetStatValue (int)
         [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -113,7 +102,7 @@ namespace SAM.API.Wrappers
             IntPtr name,
             [MarshalAs(UnmanagedType.I1)] out bool isAchieved);
 
-        public bool GetAchievementState(string name, out bool isAchieved)
+        public bool GetAchievement(string name, out bool isAchieved)
         {
             using (var nativeName = NativeStrings.StringToStringHandle(name))
             {
@@ -123,7 +112,7 @@ namespace SAM.API.Wrappers
         }
         #endregion
 
-        #region SetAchievementState
+        #region SetAchievement
         [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
         [return: MarshalAs(UnmanagedType.I1)]
         private delegate bool NativeSetAchievement(IntPtr self, IntPtr name);
@@ -148,6 +137,25 @@ namespace SAM.API.Wrappers
                     this.Functions.SetAchievement,
                     this.ObjectAddress,
                     nativeName.Handle);
+            }
+        }
+        #endregion
+
+        #region GetAchievementAndUnlockTime
+        [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private delegate bool NativeGetAchievementAndUnlockTime(
+            IntPtr self,
+            IntPtr name,
+            [MarshalAs(UnmanagedType.I1)] out bool isAchieved,
+            out uint unlockTime);
+
+        public bool GetAchievementAndUnlockTime(string name, out bool isAchieved, out uint unlockTime)
+        {
+            using (var nativeName = NativeStrings.StringToStringHandle(name))
+            {
+                var call = this.GetFunction<NativeGetAchievementAndUnlockTime>(this.Functions.GetAchievementAndUnlockTime);
+                return call(this.ObjectAddress, nativeName.Handle, out isAchieved, out unlockTime);
             }
         }
         #endregion
@@ -195,6 +203,16 @@ namespace SAM.API.Wrappers
                     nativeKey.Handle);
                 return NativeStrings.PointerToString(result);
             }
+        }
+        #endregion
+
+        #region RequestUserStats
+        [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
+        private delegate CallHandle NativeRequestUserStats(IntPtr self, ulong steamIdUser);
+
+        public CallHandle RequestUserStats(ulong steamIdUser)
+        {
+            return this.Call<CallHandle, NativeRequestUserStats>(this.Functions.RequestUserStats, this.ObjectAddress, steamIdUser);
         }
         #endregion
 

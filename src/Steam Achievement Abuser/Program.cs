@@ -41,6 +41,16 @@ namespace Steam_Achievement_Abuser
                 return 1;
             }
 
+            // Read-only diagnostic: request stats, load the schema, report the achievement count.
+            if (args.Length >= 2 && args[0] == "--check")
+            {
+                if (long.TryParse(args[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out long checkApp))
+                {
+                    return RunCheck(checkApp);
+                }
+                return 1;
+            }
+
             // Always pause before the window closes so the user can read the
             // summary (or any error) — no matter which path we exit through.
             try
@@ -51,6 +61,66 @@ namespace Steam_Achievement_Abuser
             {
                 PauseBeforeExit();
             }
+        }
+
+        // Read-only: drive the modern flow and report how many achievements load (sets nothing).
+        private static int RunCheck(long appId)
+        {
+            Client client;
+            try
+            {
+                client = new Client();
+                client.Initialize(appId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Init failed for app " + appId + ": " + ex.Message);
+                return 1;
+            }
+
+            bool finished = false;
+            int count = 0;
+            SAM.API.Callbacks.UserStatsReceived received =
+                client.CreateAndRegisterCallback<SAM.API.Callbacks.UserStatsReceived>();
+            received.OnRun += param =>
+            {
+                if (param.Result == 1)
+                {
+                    List<AchievementDefinition> achievements;
+                    bool ok = LoadUserGameStatsSchema(client, out achievements, (uint)appId);
+                    count = achievements.Count;
+                    Console.WriteLine("Schema loaded=" + ok + ", achievements=" + count);
+                    int shown = 0;
+                    foreach (AchievementDefinition a in achievements)
+                    {
+                        if (shown++ >= 6) break;
+                        client.SteamUserStats.GetAchievement(a.Id, out bool got);
+                        Console.WriteLine("  [" + (got ? "x" : " ") + "] " + a.Id + " : " + a.Name);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Steam returned no stats (result=" + param.Result + ")");
+                }
+                finished = true;
+            };
+
+            ulong steamId = client.SteamUser.GetSteamId();
+            if (client.SteamUserStats.RequestUserStats(steamId) == CallHandle.Invalid)
+            {
+                Console.WriteLine("RequestUserStats failed");
+                return 1;
+            }
+
+            int waited = 0;
+            while (finished == false && waited < WorkerTimeoutMs)
+            {
+                client.RunCallbacks(false);
+                Thread.Sleep(CallbackPumpIntervalMs);
+                waited += CallbackPumpIntervalMs;
+            }
+
+            return count > 0 ? 0 : 1;
         }
 
         private static void PauseBeforeExit()
@@ -88,15 +158,16 @@ namespace Steam_Achievement_Abuser
             try
             {
                 _SteamClient = new Client();
-                if (_SteamClient.Initialize(0) == false)
-                {
-                    Console.WriteLine("Could not initialize Steam. Is the Steam client running and logged in?");
-                    return 1;
-                }
+                _SteamClient.Initialize(0);
             }
             catch (DllNotFoundException)
             {
                 Console.WriteLine("Could not find steamclient.dll. Make sure Steam is installed and running.");
+                return 1;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Could not initialize Steam. Is the Steam client running and logged in? (" + ex.Message + ")");
                 return 1;
             }
 
@@ -271,7 +342,7 @@ namespace Steam_Achievement_Abuser
 
         private static void DrawProgress(int done, int total, string label)
         {
-            const int barWidth = 30;
+            const int barWidth = 28;
             double fraction = total == 0 ? 1d : (double)done / total;
             int filled = (int)Math.Round(fraction * barWidth);
             if (filled > barWidth)
@@ -282,27 +353,34 @@ namespace Steam_Achievement_Abuser
             string bar = new string('█', filled) + new string('░', barWidth - filled);
             int percent = (int)Math.Round(fraction * 100);
 
+            // Pad the label to a fixed width so a shorter name fully overwrites a longer previous one.
+            const int labelWidth = 40;
             string shown = label ?? string.Empty;
-            const int maxLabel = 42;
-            if (shown.Length > maxLabel)
-            {
-                shown = shown.Substring(0, maxLabel - 1) + "…";
-            }
+            shown = shown.Length > labelWidth ? shown.Substring(0, labelWidth - 1) + "…" : shown.PadRight(labelWidth);
 
             string line = string.Format(CultureInfo.InvariantCulture,
                 "  [{0}] {1}/{2} ({3,3}%)  {4}", bar, done, total, percent, shown);
 
-            int width = 118;
+            // Always keep the line within the console width so it can never wrap onto a
+            // second row (which would break the in-place '\r' redraw and cascade lines).
+            int width = 100;
             try
             {
-                width = Math.Max(20, Console.WindowWidth - 1);
+                if (Console.WindowWidth > 1)
+                {
+                    width = Console.WindowWidth - 1;
+                }
             }
             catch
             {
-                // Fall back to a fixed width when there's no real console.
+                // No real console (redirected output) — keep the fixed fallback.
             }
 
-            line = line.Length > width ? line.Substring(0, width) : line.PadRight(width);
+            if (line.Length > width)
+            {
+                line = line.Substring(0, width);
+            }
+
             Console.Write("\r" + line);
         }
 
@@ -402,7 +480,7 @@ namespace Steam_Achievement_Abuser
                 return;
             }
 
-            if (!_SteamClient.SteamApps003.IsSubscribedApp(id))
+            if (!_SteamClient.SteamApps008.IsSubscribedApp(id))
             {
                 return;
             }
@@ -425,55 +503,39 @@ namespace Steam_Achievement_Abuser
             try
             {
                 client = new Client();
-                if (client.Initialize(appId) == false)
-                {
-                    return 1;
-                }
+                client.Initialize(appId);
             }
             catch
             {
                 return 1;
             }
 
-            int resultCode = 1; // success only once Steam confirms the store
+            int resultCode = 1;
             bool finished = false;
 
             SAM.API.Callbacks.UserStatsReceived received =
                 client.CreateAndRegisterCallback<SAM.API.Callbacks.UserStatsReceived>();
-            SAM.API.Callbacks.UserStatsStored stored =
-                client.CreateAndRegisterCallback<SAM.API.Callbacks.UserStatsStored>();
-
             received.OnRun += param =>
             {
-                if (param.Result != 1)
+                if (param.Result == 1)
                 {
-                    // Steam didn't return this game's stats — nothing we can do.
-                    finished = true;
-                    return;
-                }
+                    List<AchievementDefinition> achievements;
+                    LoadUserGameStatsSchema(client, out achievements, (uint)appId);
+                    foreach (AchievementDefinition achievement in achievements)
+                    {
+                        client.SteamUserStats.SetAchievement(achievement.Id, true);
+                    }
 
-                List<AchievementDefinition> achievements;
-                LoadUserGameStatsSchema(client, out achievements, (uint)appId);
-                foreach (AchievementDefinition achievement in achievements)
-                {
-                    client.SteamUserStats.SetAchievement(achievement.Id, true);
+                    // Persist the changes — without StoreStats() nothing actually unlocks.
+                    resultCode = client.SteamUserStats.StoreStats() ? 0 : 1;
                 }
-
-                // Persist the changes — without StoreStats() nothing actually unlocks.
-                // Success is confirmed asynchronously via the UserStatsStored callback below.
-                if (client.SteamUserStats.StoreStats() == false)
-                {
-                    finished = true;
-                }
-            };
-
-            stored.OnRun += param =>
-            {
-                resultCode = param.Result == 1 ? 0 : 1;
                 finished = true;
             };
 
-            if (client.SteamUserStats.RequestCurrentStats() == false)
+            // Modern Steam: request this user's stats for the app. This is what makes
+            // Steam deliver (and cache) the achievement schema and fire UserStatsReceived.
+            ulong steamId = client.SteamUser.GetSteamId();
+            if (client.SteamUserStats.RequestUserStats(steamId) == CallHandle.Invalid)
             {
                 return 1;
             }
@@ -516,7 +578,7 @@ namespace Steam_Achievement_Abuser
                 return false;
             }
 
-            string currentLanguage = client.SteamApps003.GetCurrentGameLanguage();
+            string currentLanguage = client.SteamApps008.GetCurrentGameLanguage();
             KeyValue stats = kv[gameId.ToString(CultureInfo.InvariantCulture)]["stats"];
             if (stats.Valid == false || stats.Children == null)
             {
@@ -530,10 +592,28 @@ namespace Steam_Achievement_Abuser
                     continue;
                 }
 
-                int rawType = stat["type_int"].Valid
-                    ? stat["type_int"].AsInteger(0)
-                    : stat["type"].AsInteger(0);
-                var type = (SAM.API.Types.UserStatType)rawType;
+                // Modern schemas store "type" as a string ("achievements"); older ones
+                // use an integer in "type_int" (or "type"). Handle both.
+                SAM.API.Types.UserStatType type;
+                KeyValue typeNode = stat["type"];
+                if (typeNode.Valid && typeNode.Type == KeyValueType.String)
+                {
+                    if (Enum.TryParse((string)typeNode.Value, true, out type) == false)
+                    {
+                        type = SAM.API.Types.UserStatType.Invalid;
+                    }
+                }
+                else
+                {
+                    type = SAM.API.Types.UserStatType.Invalid;
+                }
+
+                if (type == SAM.API.Types.UserStatType.Invalid)
+                {
+                    KeyValue typeIntNode = stat["type_int"];
+                    int rawType = typeIntNode.Valid ? typeIntNode.AsInteger(0) : typeNode.AsInteger(0);
+                    type = (SAM.API.Types.UserStatType)rawType;
+                }
                 switch (type)
                 {
                     case SAM.API.Types.UserStatType.Invalid:
