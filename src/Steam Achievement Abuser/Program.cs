@@ -41,7 +41,23 @@ namespace Steam_Achievement_Abuser
                 return 1;
             }
 
-            return RunInteractive();
+            // Always pause before the window closes so the user can read the
+            // summary (or any error) — no matter which path we exit through.
+            try
+            {
+                return RunInteractive();
+            }
+            finally
+            {
+                PauseBeforeExit();
+            }
+        }
+
+        private static void PauseBeforeExit()
+        {
+            Console.WriteLine();
+            Console.Write("Press Enter to exit...");
+            Console.ReadLine();
         }
 
         private static int RunInteractive()
@@ -129,9 +145,6 @@ namespace Steam_Achievement_Abuser
                 Console.WriteLine();
                 Console.WriteLine("Hmpf! It's... it's not like I wanted to help you anyway, baka! ＞︿＜");
                 Console.WriteLine("(No achievements were touched.)");
-                Console.WriteLine();
-                Console.Write("Press Enter to close...");
-                Console.ReadLine();
                 return 0;
             }
 
@@ -422,23 +435,42 @@ namespace Steam_Achievement_Abuser
                 return 1;
             }
 
-            bool done = false;
-            int resultCode = 1; // stays 1 unless Steam actually returns this game's stats
-            SAM.API.Callbacks.UserStatsReceived callback =
+            int resultCode = 1; // success only once Steam confirms the store
+            bool finished = false;
+
+            SAM.API.Callbacks.UserStatsReceived received =
                 client.CreateAndRegisterCallback<SAM.API.Callbacks.UserStatsReceived>();
-            callback.OnRun += param =>
+            SAM.API.Callbacks.UserStatsStored stored =
+                client.CreateAndRegisterCallback<SAM.API.Callbacks.UserStatsStored>();
+
+            received.OnRun += param =>
             {
-                if (param.Result == 1)
+                if (param.Result != 1)
                 {
-                    List<AchievementDefinition> achievements;
-                    LoadUserGameStatsSchema(client, out achievements, (uint)appId);
-                    foreach (AchievementDefinition achievement in achievements)
-                    {
-                        client.SteamUserStats.SetAchievement(achievement.Id, true);
-                    }
-                    resultCode = 0;
+                    // Steam didn't return this game's stats — nothing we can do.
+                    finished = true;
+                    return;
                 }
-                done = true;
+
+                List<AchievementDefinition> achievements;
+                LoadUserGameStatsSchema(client, out achievements, (uint)appId);
+                foreach (AchievementDefinition achievement in achievements)
+                {
+                    client.SteamUserStats.SetAchievement(achievement.Id, true);
+                }
+
+                // Persist the changes — without StoreStats() nothing actually unlocks.
+                // Success is confirmed asynchronously via the UserStatsStored callback below.
+                if (client.SteamUserStats.StoreStats() == false)
+                {
+                    finished = true;
+                }
+            };
+
+            stored.OnRun += param =>
+            {
+                resultCode = param.Result == 1 ? 0 : 1;
+                finished = true;
             };
 
             if (client.SteamUserStats.RequestCurrentStats() == false)
@@ -447,7 +479,7 @@ namespace Steam_Achievement_Abuser
             }
 
             int waited = 0;
-            while (done == false && waited < WorkerTimeoutMs)
+            while (finished == false && waited < WorkerTimeoutMs)
             {
                 client.RunCallbacks(false);
                 Thread.Sleep(CallbackPumpIntervalMs);
