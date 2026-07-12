@@ -36,11 +36,13 @@ No Problem! After all, it's always more secure to compile a program yourself. In
 6. You only need two files: `SAM.API.dll` and `Steam Achievement Abuser.exe`. (The separate "App" executable is gone — it's all one exe now.)
 7. Run `Steam Achievement Abuser.exe` and it should work!
 
-### Want a single portable folder with no runtime install?
-Publish it self-contained for 32-bit Windows (the tool must be 32-bit because Steam's `steamclient.dll` is):
+### Want a single portable .exe with no runtime install?
+Publish it self-contained for 32-bit Windows (the tool must be 32-bit because Steam's `steamclient.dll` is). This bundles the whole .NET runtime into **one compressed `Steam Achievement Abuser.exe`** (~33 MB) — no other files needed:
 
 ```
 dotnet publish "Steam Achievement Abuser\Steam Achievement Abuser.csproj" -c Release -r win-x86 --self-contained
 ```
+
+This is exactly what the release pipeline ships, so the download from Releases is just that single .exe.
 
 > **Note:** The tool always runs as a 32-bit (x86) process — that's required to talk to Steam's 32-bit client library.

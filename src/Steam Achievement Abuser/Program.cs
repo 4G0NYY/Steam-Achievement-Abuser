@@ -126,7 +126,12 @@ namespace Steam_Achievement_Abuser
             if (answer == null || answer.Trim().Length == 0 ||
                 (answer.Trim()[0] != 'y' && answer.Trim()[0] != 'Y'))
             {
-                Console.WriteLine("Aborted — no achievements were touched.");
+                Console.WriteLine();
+                Console.WriteLine("Hmpf! It's... it's not like I wanted to help you anyway, baka! ＞︿＜");
+                Console.WriteLine("(No achievements were touched.)");
+                Console.WriteLine();
+                Console.Write("Press Enter to close...");
+                Console.ReadLine();
                 return 0;
             }
 

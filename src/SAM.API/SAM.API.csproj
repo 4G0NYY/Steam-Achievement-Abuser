@@ -17,6 +17,8 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <!-- Windows-only interop by design; binary reads mirror the original SAM parser. -->
     <NoWarn>$(NoWarn);CA1416;CA2022</NoWarn>
+    <!-- Embed symbols in the DLL so no stray .pdb lands next to the single-file exe. -->
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
 </Project>
