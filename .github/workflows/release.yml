@@ -1,0 +1,51 @@
+name: Release
+
+# Build and publish a release whenever a version tag (e.g. v1.2.0) is pushed.
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Needed so the workflow can create a GitHub Release and upload the build.
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Steam's steamclient.dll is 32-bit, so we publish a self-contained
+      # win-x86 build. "Self-contained" means the end user needs no .NET runtime.
+      - name: Publish (self-contained, win-x86)
+        shell: pwsh
+        run: >
+          dotnet publish "src/Steam Achievement Abuser/Steam Achievement Abuser.csproj"
+          -c Release
+          -r win-x86
+          --self-contained true
+          -o publish
+
+      - name: Package into a zip
+        shell: pwsh
+        run: |
+          $zip = "SteamAchievementAbuser-$env:GITHUB_REF_NAME-win-x86.zip"
+          Compress-Archive -Path publish/* -DestinationPath $zip -Force
+          "ASSET=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create $env:GITHUB_REF_NAME "$env:ASSET"
+          --title $env:GITHUB_REF_NAME
+          --generate-notes

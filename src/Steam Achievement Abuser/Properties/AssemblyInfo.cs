@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // набора атрибутов. Измените значения этих атрибутов, чтобы изменить сведения,
 // связанные со сборкой.
 [assembly: AssemblyTitle("Steam Achievement Abuser")]
-[assembly: AssemblyDescription("Steam Achievement Abuser")]
+[assembly: AssemblyDescription("Steam Achievement Abuser — 2026 Revamp by 4G0NYY")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("sa68ru.xyz")]
+[assembly: AssemblyCompany("4G0NYY")]
 [assembly: AssemblyProduct("Steam Achievement Abuser")]
-[assembly: AssemblyCopyright("Copyright © sa68ru  2018")]
+[assembly: AssemblyCopyright("Copyright © 2018 — 2026 Revamp by 4G0NYY")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

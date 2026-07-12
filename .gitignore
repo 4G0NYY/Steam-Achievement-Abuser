@@ -3,3 +3,12 @@
 ################################################################################
 
 /.vs
+*bin
+*/bin
+*obj
+*/obj
+
+# Local publish output / release zips
+/publish
+publish_test
+*.zip
